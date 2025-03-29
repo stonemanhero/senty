@@ -11,7 +11,7 @@ class MainWindow(QMainWindow):
         self.config_manager = config_manager
         self.encryption_key = encryption_key
         self.db_manager = DatabaseManager(self.encryption_key)  # Pass encryption key here
-        self.setWindowTitle("Senty - Secret Manager")
+        self.setWindowTitle("Senty - Secrets Manager")
         self.resize(800, 600)
         self.center_window()
         self.setFixedSize(self.size())
@@ -31,9 +31,7 @@ class MainWindow(QMainWindow):
 
         # Horizontal menu layout
         menu_layout = QHBoxLayout()
-        btn_add = QPushButton("Add")
-        add_icon = QIcon("resources/icons/add.png")  # Ensure this path is correct
-        btn_add.setIcon(add_icon)
+        btn_add = QPushButton("Add")     
         btn_add.clicked.connect(self.handle_add)
         btn_sync = QPushButton("Sync")
         btn_sync.clicked.connect(self.handle_sync)

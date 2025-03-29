@@ -10,7 +10,7 @@ class MasterPasswordDialog(QDialog):
         super(MasterPasswordDialog, self).__init__(parent)
         self.config_manager = config_manager
         self.is_setting = is_setting
-        self.setWindowTitle("Set Master Password" if is_setting else "Enter Master Password")
+        self.setWindowTitle("Senty")
         self.setup_ui()
 
     def setup_ui(self):
