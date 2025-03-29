@@ -1,7 +1,4 @@
-from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QDialog, QDesktopWidget
-)
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QDialog, QDesktopWidget
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from app.database import DatabaseManager
@@ -9,10 +6,11 @@ from app.dialogs.add_secret_dialog import AddSecretDialog
 from app.views.item_widget import ItemWidget
 
 class MainWindow(QMainWindow):
-    def __init__(self, config_manager, parent=None):
+    def __init__(self, config_manager, encryption_key, parent=None):
         super(MainWindow, self).__init__(parent)
         self.config_manager = config_manager
-        self.db_manager = DatabaseManager()  # Initialize SQLite DB
+        self.encryption_key = encryption_key
+        self.db_manager = DatabaseManager(self.encryption_key)  # Pass encryption key here
         self.setWindowTitle("Senty - Secret Manager")
         self.resize(800, 600)
         self.center_window()
@@ -33,48 +31,34 @@ class MainWindow(QMainWindow):
 
         # Horizontal menu layout
         menu_layout = QHBoxLayout()
-
-        # Left side buttons
         btn_add = QPushButton("Add")
         add_icon = QIcon("resources/icons/add.png")  # Ensure this path is correct
         btn_add.setIcon(add_icon)
         btn_add.clicked.connect(self.handle_add)
-
         btn_sync = QPushButton("Sync")
         btn_sync.clicked.connect(self.handle_sync)
-
         menu_layout.addWidget(btn_add)
         menu_layout.addWidget(btn_sync)
-
-        # Stretch to push About and Exit buttons to the far right
         menu_layout.addStretch()
-
-        # Right side buttons
         btn_about = QPushButton("About")
         btn_about.clicked.connect(self.handle_about)
-
         btn_exit = QPushButton("Exit")
         btn_exit.clicked.connect(self.handle_exit)
-
         menu_layout.addWidget(btn_about)
         menu_layout.addWidget(btn_exit)
         main_layout.addLayout(menu_layout)
 
-        # Search block with autofocus
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search secrets...")
         self.search_edit.setFocus()
         self.search_edit.textChanged.connect(self.handle_search)
         main_layout.addWidget(self.search_edit)
 
-        # List widget to display secrets using custom ItemWidget
         self.list_widget = QListWidget()
-        # Remove full-row blue highlight on selection
         self.list_widget.setStyleSheet("QListWidget::item:selected { background: transparent; }")
         main_layout.addWidget(self.list_widget)
 
     def load_secrets(self):
-        """Load all secrets from the database and populate the list widget."""
         self.list_widget.clear()
         secrets = self.db_manager.get_all_secrets()
         for secret in secrets:
@@ -92,14 +76,15 @@ class MainWindow(QMainWindow):
             self.list_widget.setItemWidget(list_item, item_widget)
 
     def handle_search(self):
-        """Filter secrets based on the search keyword."""
-        keyword = self.search_edit.text().strip()
+        keyword = self.search_edit.text().strip().lower()
         self.list_widget.clear()
-        if keyword:
-            secrets = self.db_manager.search_secrets(keyword)
-        else:
-            secrets = self.db_manager.get_all_secrets()
-        for secret in secrets:
+        all_secrets = self.db_manager.get_all_secrets()
+        # Filter in memory on decrypted data
+        filtered = [
+            secret for secret in all_secrets
+            if keyword in secret["subject"].lower() or keyword in secret["tags"].lower()
+        ]
+        for secret in filtered:
             secret_id = secret["id"]
             subject = secret["subject"]
             tags = secret["tags"]
@@ -114,7 +99,6 @@ class MainWindow(QMainWindow):
             self.list_widget.setItemWidget(list_item, item_widget)
 
     def handle_add(self):
-        """Show the Add Secret dialog and reload the list if a new secret is added."""
         dialog = AddSecretDialog(self.db_manager, self)
         if dialog.exec_() == QDialog.Accepted:
             self.load_secrets()

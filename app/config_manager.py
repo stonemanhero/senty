@@ -1,6 +1,7 @@
 import os
 import json
 import hashlib
+import base64
 
 class ConfigManager:
     """
@@ -8,7 +9,6 @@ class ConfigManager:
     The configuration is saved in a JSON file in the ~/.senty folder.
     """
     def __init__(self):
-        # Define the folder and config file path
         self.app_dir = os.path.join(os.path.expanduser("~"), ".senty")
         if not os.path.exists(self.app_dir):
             os.makedirs(self.app_dir)
@@ -41,6 +41,10 @@ class ConfigManager:
         # Store a SHA-256 hash of the password (for demonstration purposes)
         hashed = hashlib.sha256(password.encode()).hexdigest()
         self.config["master_password_hash"] = hashed
+        # Also generate and store a salt if not already present
+        if "salt" not in self.config:
+            salt = base64.urlsafe_b64encode(os.urandom(16)).decode()
+            self.config["salt"] = salt
         self.save_config()
 
     def verify_master_password(self, password):
@@ -48,3 +52,10 @@ class ConfigManager:
             return False
         hashed = hashlib.sha256(password.encode()).hexdigest()
         return hashed == self.config.get("master_password_hash")
+
+    def get_salt(self):
+        if "salt" not in self.config:
+            salt = base64.urlsafe_b64encode(os.urandom(16)).decode()
+            self.config["salt"] = salt
+            self.save_config()
+        return base64.urlsafe_b64decode(self.config["salt"])
